@@ -18,8 +18,8 @@ const config = {
 };
 
 function preload() {
-  this.load.image('jungle-tiles', 'assets/jungle-tiles.png');
-  this.load.image('soldier', 'assets/soldier-blue.png');
+  this.load.image('jungle-tiles', 'assets/background.png');
+  this.load.image('soldier', 'assets/sprite.png');
   this.load.image('coin', 'assets/coin.png');
   this.load.image('enemy', 'assets/enemy-red.png');
   this.load.image('bullet', 'assets/bullet.png');
