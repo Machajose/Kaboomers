@@ -1,67 +1,160 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sui Militia</title>
+
+  <!-- External Libraries -->
   <script src="https://unpkg.com/phaser@3.55.2/dist/phaser.min.js"></script>
   <script src="https://unpkg.com/@mysten/sui.js@latest"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-    .pixel-border { border-image: url('assets/pixel-border.png') 5 stretch; }
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-    .coin { animation: pulse 1s infinite; }
-    @keyframes sparkle { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-    .animate-sparkle { animation: sparkle 0.5s 3; }
-    @keyframes highlight { 0% { background: #FFD700; } 100% { background: none; } }
-    .animate-highlight { animation: highlight 1s; }
+    body {
+      background: radial-gradient(circle at top, #0a1c2a, #000);
+      overflow-x: hidden;
+      font-family: 'Press Start 2P', cursive;
+    }
+
+    /* Starry background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: url('assets/background.jpg') repeat;
+      animation: moveStars 60s linear infinite;
+      z-index: -1;
+    }
+    @keyframes moveStars {
+      from { background-position: 0 0; }
+      to { background-position: -10000px 5000px; }
+    }
+
+    /* Pixel border with glow */
+    .pixel-border {
+      border-image: url('assets/pixel-border.png') 8 stretch;
+      border-width: 4px;
+      border-style: solid;
+      box-shadow: 0 0 15px #ff6a00;
+    }
+
+    /* Neon flicker for title */
+    @keyframes neon-flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        text-shadow: 0 0 5px #ff4500, 0 0 15px #00ff7f, 0 0 25px #ff4500;
+      }
+      20%, 24%, 55% {
+        text-shadow: none;
+      }
+    }
+    .neon-title {
+      animation: neon-flicker 3s infinite;
+    }
+
+    /* Buttons */
+    .btn-glow {
+      background: linear-gradient(45deg, #ff4500, #ffd700);
+      color: #fff;
+      transition: transform 0.2s ease;
+      box-shadow: 0 0 10px #ff4500;
+    }
+    .btn-glow:hover {
+      transform: translateY(-4px) scale(1.05);
+      box-shadow: 0 0 20px #ffd700, 0 0 40px #ff4500;
+    }
+    .btn-glow:active {
+      transform: scale(0.95);
+    }
+
+    /* Floating effect for icons */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .float {
+      animation: float 2.5s ease-in-out infinite;
+    }
+
+    /* Smooth fade-in */
+    .fade-in { animation: fadeIn 1.5s ease forwards; opacity: 0; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
-<body class="bg-gradient-to-b from-gray-900 to-blue-900 min-h-screen flex flex-col items-center justify-center">
-  <div class="w-full max-w-4xl p-6 bg-gray-800 rounded-lg border-4 border-orange-600 pixel-border">
-    <h1 class="text-3xl font-bold text-center mb-4 text-orange-400" style="font-family: 'Press Start 2P', cursive; text-shadow: 0 0 5px #FF4500;">
-      Sui Militia
+<body class="min-h-screen flex flex-col items-center justify-center px-4">
+
+  <div class="w-full max-w-5xl p-8 bg-gray-900/80 rounded-lg pixel-border fade-in">
+    <!-- Title -->
+    <h1 class="text-5xl md:text-6xl text-center mb-10 text-orange-400 neon-title drop-shadow-lg">
+      ⚔️ Sui Militia ⚔️
     </h1>
-    <div class="flex justify-between mb-4">
-      <div class="flex items-center">
-        <img src="assets/soldier.png" class="w-12 h-12 mr-2" alt="Soldier">
-        <p id="playerStatus" class="text-lg">Click Join Island!</p>
+
+    <!-- HUD -->
+    <div class="flex flex-col md:flex-row justify-between mb-8 gap-6">
+      <div class="flex items-center bg-gray-800/90 p-4 rounded pixel-border">
+        <img src="assets/soldier.png" class="w-16 h-16 mr-4 float" alt="Soldier">
+        <p id="playerStatus" class="text-lg text-white font-bold">Click Join Island!</p>
       </div>
-      <div>
-        <p>Coins: <span id="coins">0</span> <img src="assets/coin.png" class="w-6 h-6 inline coin" alt="Coin"></p>
-        <p>Weapon: <span id="weapon">Basic Gun</span></p>
-        <div class="w-24 bg-gray-700 rounded h-2">
-          <div id="health" class="bg-green-600 h-2 rounded" style="width: 100%; transition: width 0.5s;"></div>
+      <div class="bg-gray-800/90 p-4 rounded pixel-border text-right">
+        <p class="text-white text-lg">Coins: <span id="coins" class="text-yellow-400">0</span> <img src="assets/coin.png" class="w-7 h-7 inline float" alt="Coin"></p>
+        <p class="text-white text-lg">Weapon: <span id="weapon" class="text-orange-400">Basic Gun</span></p>
+        <div class="w-48 bg-gray-700 rounded h-4 mt-2 overflow-hidden">
+          <div id="health" class="health-bar h-4 rounded bg-gradient-to-r from-orange-500 to-green-400" style="width: 100%;"></div>
         </div>
       </div>
     </div>
-    <canvas id="worldCanvas" width="800" height="600" class="mx-auto border-2 border-gray-600"></canvas>
-    <div class="flex mt-4">
-      <div class="bg-gray-700 p-4 rounded w-1/2 mr-2">
-        <img src="assets/scroll.png" class="w-8 h-8 mx-auto mb-2" alt="Quest Scroll">
-        <h2 class="text-lg text-center">Quest: Find the Hidden Coin</h2>
-        <p class="text-center">Explore Coin Beach!</p>
-        <button id="joinIsland" class="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded mt-2 mx-auto block">
+
+    <!-- Canvas -->
+    <canvas id="worldCanvas" width="800" height="600" class="mx-auto border-4 pixel-border shadow-xl"></canvas>
+
+    <!-- Quest + Leaderboard -->
+    <div class="flex flex-col md:flex-row mt-8 gap-6">
+      <!-- Quest -->
+      <div class="bg-gray-800/90 p-6 rounded pixel-border w-full md:w-1/2">
+        <img src="assets/scroll.png" class="w-12 h-12 mx-auto mb-3 float" alt="Quest Scroll">
+        <h2 class="text-xl text-center text-orange-400 mb-2">Quest: Find the Hidden Coin</h2>
+        <p class="text-center text-white">Explore Coin Beach!</p>
+        <button id="joinIsland" class="py-3 px-8 rounded mt-6 mx-auto block btn-glow text-lg">
           Join Island!
         </button>
-        <button id="collectCoin" class="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded mt-2 mx-auto block hidden" disabled>
+        <button id="collectCoin" class="py-3 px-8 rounded mt-4 mx-auto block btn-glow text-lg hidden" disabled>
           Collect Coin!
         </button>
-        <button id="claimWeapon" class="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded mt-2 mx-auto block hidden">
-          <img src="assets/fire-gun.png" class="w-6 h-6 inline mr-2" alt="Fire Gun"> Claim Fire Gun!
+        <button id="claimWeapon" class="py-3 px-8 rounded mt-4 mx-auto block btn-glow text-lg hidden">
+          <img src="assets/fire-gun.png" class="w-7 h-7 inline mr-2 float" alt="Fire Gun"> Claim Fire Gun!
         </button>
-        <p id="questStatus" class="text-center mt-2"></p>
+        <p id="questStatus" class="text-center text-white mt-4 text-lg"></p>
       </div>
-      <div class="bg-gray-700 p-4 rounded w-1/2">
-        <h2 class="text-lg text-center flex items-center justify-center">
-          <img src="assets/trophy.png" class="w-8 h-8 mr-2" alt="Trophy"> Top Soldiers
+
+      <!-- Leaderboard -->
+      <div class="bg-gray-800/90 p-6 rounded pixel-border w-full md:w-1/2">
+        <h2 class="text-xl text-center text-orange-400 flex items-center justify-center mb-4">
+          <img src="assets/trophy.png" class="w-12 h-12 mr-3 float" alt="Trophy"> Top Soldiers
         </h2>
-        <ul id="leaderboard" class="text-sm text-center">
-          <li class="text-yellow-400">0x123...: 50 Coins</li>
+        <ul id="leaderboard" class="text-base text-center text-white space-y-2">
+          <li class="text-yellow-400">0x123...: 50 Coins 🥇</li>
+          <li class="text-gray-200">0x456...: 30 Coins 🥈</li>
+          <li class="text-gray-400">0x789...: 20 Coins 🥉</li>
         </ul>
       </div>
     </div>
+
+    <!-- Footer -->
+    <p class="text-center text-white mt-10 text-sm tracking-wider">
+      Built on <span class="text-orange-400">Sui</span> for Web3 Gaming ⚡
+    </p>
   </div>
+
+  <script>
+    // Button click sound
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => new Audio('assets/click.wav').play());
+    });
+  </script>
   <script src="game.js"></script>
 </body>
 </html>
