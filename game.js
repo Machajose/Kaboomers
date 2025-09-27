@@ -1,152 +1,164 @@
-let coins = 0;
-let hasFireGun = false;
-let lastFired = 0; // cooldown tracker
-
-function addCoins(amount, scene, x = null, y = null) {
-  coins += amount;
-  document.getElementById('coins').textContent = coins;
-  new Audio('assets/coin.wav').play();
-
-  // Floating text popup
-  if (scene && x !== null && y !== null) {
-    const popup = scene.add.text(x, y - 20, `+${amount} 💰`, {
-      fontFamily: 'Press Start 2P',
-      fontSize: '14px',
-      fill: '#FFD700'
-    }).setOrigin(0.5);
-    scene.tweens.add({
-      targets: popup,
-      y: y - 60,
-      alpha: 0,
-      duration: 1000,
-      ease: 'power1',
-      onComplete: () => popup.destroy()
-    });
-  }
-}
+let players = {};
+let bullets, enemies, coins;
+let gameOver = false;
+let timer = 60; // 1-minute match
 
 const config = {
   type: Phaser.AUTO,
   width: 800,
   height: 600,
   physics: { default: 'arcade', arcade: { debug: false } },
-  scene: {
-    preload,
-    create,
-    update
-  }
+  scene: { preload, create, update }
 };
 
 function preload() {
-  this.load.image('jungle-tiles', 'assets/background.png');
+  this.load.image('bg', 'assets/background.png');
   this.load.image('soldier', 'assets/soldier.png');
-  this.load.image('coin', 'assets/coin.png');
   this.load.image('enemy', 'assets/enemy.png');
+  this.load.image('coin', 'assets/coin.png');
   this.load.image('bullet', 'assets/bullet.png');
-  this.load.image('fireBullet', 'assets/fire-bullet.png'); // 🔥 upgrade
-  this.load.image('explosion', 'assets/explosion.png');
-  this.load.tilemapTiledJSON('map', 'assets/island-map.json');
-  this.load.atlas('particles', 'assets/particles.png', 'assets/particles.json'); // optional particles
 }
 
 function create() {
-  // Map
-  const map = this.make.tilemap({ key: 'map' });
-  const tileset = map.addTilesetImage('jungle-tiles', 'jungle-tiles');
-  const ground = map.createLayer('Ground', tileset, 0, 0);
-  ground.setCollisionByProperty({ collides: true });
+  // Background
+  this.add.image(400, 300, 'bg');
 
-  // Player
-  this.player = this.physics.add.sprite(400, 300, 'soldier').setScale(1);
-  this.player.setCollideWorldBounds(true);
-  this.physics.add.collider(this.player, ground);
+  // Groups
+  bullets = this.physics.add.group({ maxSize: 20 });
+  enemies = this.physics.add.group();
+  coins = this.physics.add.group();
 
-  // Coin + Enemy
-  this.coin = this.physics.add.sprite(500, 350, 'coin').setScale(1).setBounce(0.5);
-  this.enemy = this.physics.add.sprite(600, 400, 'enemy').setScale(1).setBounce(0.3);
-  this.physics.add.collider(this.coin, ground);
-  this.physics.add.collider(this.enemy, ground);
+  // Player setup
+  const player = this.physics.add.sprite(100, 300, 'soldier');
+  player.health = 100;
+  player.score = 0;
+  player.setCollideWorldBounds(true);
+  players["local"] = player;
 
-  // Camera
-  this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-  this.cameras.main.startFollow(this.player);
-  this.cameras.main.fadeIn(1000, 0, 0, 0);
-  this.cameras.main.setZoom(1.1);
+  // Spawn enemies
+  for (let i = 0; i < 3; i++) {
+    let enemy = enemies.create(300 + i * 150, 400, 'enemy');
+    enemy.health = 30;
+    enemy.setCollideWorldBounds(true);
+    enemy.setBounce(1).setVelocity(Phaser.Math.Between(-100, 100), 20);
+  }
 
-  // Overlap with coin
-  this.physics.add.overlap(this.player, this.coin, () => {
-    document.getElementById('collectCoin').disabled = false;
-    document.getElementById('questStatus').textContent = 'Coin found! Click to collect!';
-  });
-
-  // Bullets
-  this.bullets = this.physics.add.group({ maxSize: 15 });
-  this.physics.add.collider(this.bullets, ground, (bullet) => bullet.destroy());
-  this.physics.add.collider(this.bullets, this.enemy, (bullet, enemy) => {
-    bullet.destroy();
-    enemy.setTexture('explosion');
-    addCoins(5, this, enemy.x, enemy.y);
-    document.getElementById('questStatus').textContent = 'Guard Defeated! +5 Coins! 💥';
-    document.getElementById('claimWeapon').classList.remove('hidden');
-    new Audio('assets/boom.wav').play();
-
-    // Particle effect on explosion
-    const particles = this.add.particles('coin');
-    const emitter = particles.createEmitter({
-      x: enemy.x,
-      y: enemy.y,
-      speed: { min: -100, max: 100 },
-      lifespan: 500,
-      quantity: 15,
-      scale: { start: 0.5, end: 0 },
-      alpha: { start: 1, end: 0 }
-    });
-    setTimeout(() => {
-      enemy.destroy();
-      particles.destroy();
-    }, 600);
-  });
+  // Collisions
+  this.physics.add.overlap(bullets, enemies, bulletHitEnemy, null, this);
+  this.physics.add.overlap(player, coins, collectCoin, null, this);
 
   // Controls
   this.cursors = this.input.keyboard.createCursorKeys();
-  this.keys = this.input.keyboard.addKeys('W,A,S,D');
+  this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE');
 
-  // UI Button logic
-  document.getElementById('collectCoin').addEventListener('click', () => {
-    if (!this.coin.active) return;
-    this.coin.destroy();
-    addCoins(10, this, this.player.x, this.player.y);
-    document.getElementById('questStatus').textContent = 'Coin Collected! +10 Coins!';
-    document.getElementById('collectCoin').classList.add('hidden');
+  // Timer
+  this.time.addEvent({
+    delay: 1000,
+    callback: () => {
+      if (!gameOver) timer--;
+      if (timer <= 0) endGame(this);
+    },
+    loop: true
   });
 
-  document.getElementById('claimWeapon').addEventListener('click', () => {
-    hasFireGun = true;
-    document.getElementById('weapon').textContent = '🔥 Fire Gun';
-    document.getElementById('questStatus').textContent = 'Weapon Upgraded!';
-    document.getElementById('claimWeapon').classList.add('hidden');
+  // Fire game start event (for Web3 hooks later)
+  document.dispatchEvent(new CustomEvent("game:playerJoin", { detail: { playerId: "local" }}));
+}
+
+function update() {
+  if (gameOver) return;
+
+  const player = players["local"];
+  if (!player) return;
+
+  player.setVelocity(0);
+
+  // Movement (WASD / Arrows)
+  if (this.keys.W.isDown || this.cursors.up.isDown) player.setVelocityY(-200);
+  if (this.keys.S.isDown || this.cursors.down.isDown) player.setVelocityY(200);
+  if (this.keys.A.isDown || this.cursors.left.isDown) player.setVelocityX(-200);
+  if (this.keys.D.isDown || this.cursors.right.isDown) player.setVelocityX(200);
+
+  // Rotate player to face mouse pointer
+  const pointer = this.input.activePointer;
+  const angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.worldX, pointer.worldY);
+  player.setRotation(angle);
+
+  // Shooting towards pointer
+  if (pointer.isDown) {
+    shootBullet(this, player, pointer.worldX, pointer.worldY);
+  }
+
+  // Enemy AI - chase player
+  enemies.children.iterate(enemy => {
+    if (enemy && enemy.active) {
+      this.physics.moveToObject(enemy, player, 80);
+    }
   });
 }
 
-function update(time) {
-  const speed = 180;
-  this.player.setVelocity(0);
+function shootBullet(scene, player, targetX, targetY) {
+  const bullet = bullets.get(player.x, player.y, 'bullet');
+  if (bullet) {
+    bullet.setActive(true).setVisible(true);
+    scene.physics.world.enable(bullet);
+    bullet.body.allowGravity = false;
 
-  if (this.keys.W.isDown) this.player.setVelocityY(-speed);
-  if (this.keys.S.isDown) this.player.setVelocityY(speed);
-  if (this.keys.A.isDown) this.player.setVelocityX(-speed);
-  if (this.keys.D.isDown) this.player.setVelocityX(speed);
+    // Calculate velocity towards pointer
+    const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
+    const speed = 500;
+    bullet.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
 
-  // Shooting with cooldown
-  if (this.input.activePointer.isDown && time > lastFired) {
-    lastFired = time + (hasFireGun ? 150 : 400); // faster fire with upgrade
-    const bullet = this.bullets.get(this.player.x + 20, this.player.y, hasFireGun ? 'fireBullet' : 'bullet');
-    if (bullet) {
-      bullet.setActive(true).setVisible(true);
-      bullet.setVelocityX( hasFireGun ? 500 : 300 );
-      new Audio(hasFireGun ? 'assets/fire.wav' : 'assets/shoot.wav').play();
-    }
+    // Rotate bullet
+    bullet.setRotation(angle);
+
+    bullet.setCollideWorldBounds(true);
+    bullet.body.onWorldBounds = true;
+
+    bullet.body.world.on('worldbounds', function (body) {
+      if (body.gameObject === bullet) {
+        bullet.destroy();
+      }
+    });
+
+    new Audio('assets/shoot.wav').play();
   }
 }
 
-const game = new Phaser.Game(config);
+function bulletHitEnemy(bullet, enemy) {
+  bullet.destroy();
+  enemy.health -= 10;
+
+  if (enemy.health <= 0) {
+    enemy.destroy();
+    spawnCoin(enemy.x, enemy.y);
+    players["local"].score += 5;
+
+    document.dispatchEvent(new CustomEvent("game:enemyDefeated", { detail: { reward: 5 }}));
+  }
+}
+
+function spawnCoin(x, y) {
+  let coin = coins.create(x, y, 'coin');
+  coin.setBounce(0.5).setCollideWorldBounds(true);
+}
+
+function collectCoin(player, coin) {
+  coin.destroy();
+  player.score += 1;
+  document.dispatchEvent(new CustomEvent("game:coinCollect", { detail: { amount: 1 }}));
+}
+
+function endGame(scene) {
+  gameOver = true;
+  const winner = "local"; // placeholder until multiplayer
+  document.dispatchEvent(new CustomEvent("game:matchEnd", { detail: { winner, score: players[winner].score }}));
+
+  scene.add.text(400, 300, `Winner! Score: ${players[winner].score}`, {
+    fontSize: '24px',
+    fontFamily: 'Press Start 2P',
+    fill: '#FFD700'
+  }).setOrigin(0.5);
+}
+
+new Phaser.Game(config);
