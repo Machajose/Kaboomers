@@ -1,107 +1,194 @@
-function showSection(id){
-  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  document.querySelector(`nav button[onclick="showSection('${id}')"]`).classList.add("active");
-}
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-// ===== GAME ENGINE =====
-const canvas=document.getElementById("gameCanvas"), ctx=canvas.getContext("2d");
-
-let gravity=0.4, ground=400;
-let keys={}; // key states
-
-let player={
-  x:100,y:ground,w:40,h:40,
-  vy:0, onGround:true, facing:1,
-  right:new Image(), left:new Image()
+// Player setup
+let player = {
+  x: 100,
+  y: 400,
+  width: 40,
+  height: 40,
+  color: "green",
+  dx: 0,
+  dy: 0,
+  speed: 4,
+  gravity: 0.4,
+  jumpPower: -8, // jetpack lift
+  onGround: false,
+  bullets: [],
+  facing: "right",
+  shooting: false,
+  health: 100
 };
-player.right.src="soldier-right.png";
-player.left.src="soldier-left.png";
 
-let bullets=[], enemies=[
-  {x:600,y:ground,w:40,h:40,hp:3,flash:0,speed:1}
-];
+// Score
+let score = 0;
 
-// handle actions (keyboard & UI buttons)
-function performAction(k,down=true){
-  keys[k]=down;
-  if(k===" " && down){ // shoot
-    bullets.push({
-      x:player.x+(player.facing===1?player.w:0),
-      y:player.y+20, speed:8*player.facing
-    });
-  }
+// Enemies
+let enemies = [];
+function spawnEnemy() {
+  enemies.push({
+    x: Math.random() * (canvas.width - 40),
+    y: 400,
+    width: 40,
+    height: 40,
+    color: "red",
+    dx: (Math.random() < 0.5 ? -1 : 1) * 2 // simple patrol
+  });
 }
 
-function update(){
-  // movement
-  if(keys["a"]){ player.x-=3; player.facing=-1; }
-  if(keys["d"]){ player.x+=3; player.facing=1; }
-  if(keys["w"] && player.onGround){ player.vy=-9; player.onGround=false; }
+// Spawn initial enemies
+for (let i = 0; i < 3; i++) spawnEnemy();
 
-  // gravity
-  player.y += player.vy;
-  player.vy += gravity;
-  if(player.y>=ground){ player.y=ground; player.vy=0; player.onGround=true; }
+// Keyboard state
+let keys = {};
 
-  // bullets
-  bullets.forEach(b=> b.x+=b.speed);
-  bullets=bullets.filter(b=> b.x>0 && b.x<canvas.width);
+// Event listeners
+document.addEventListener("keydown", e => {
+  keys[e.key] = true;
+});
+document.addEventListener("keyup", e => {
+  keys[e.key] = false;
+});
 
-  // collisions
-  bullets.forEach(b=>{
-    enemies.forEach((e,ei)=>{
-      if(b.x>e.x && b.x<e.x+e.w && b.y>e.y && b.y<e.y+e.h){
-        e.hp--; e.flash=5;
-        bullets.splice(bullets.indexOf(b),1);
-        if(e.hp<=0) enemies.splice(ei,1);
+// Shooting
+function shoot() {
+  player.bullets.push({
+    x: player.x + player.width / 2,
+    y: player.y + player.height / 2,
+    dx: player.facing === "right" ? 8 : -8,
+    width: 8,
+    height: 4,
+    color: "yellow"
+  });
+}
+
+// Update
+function update() {
+  // Horizontal movement
+  if (keys["ArrowLeft"]) {
+    player.dx = -player.speed;
+    player.facing = "left";
+  } else if (keys["ArrowRight"]) {
+    player.dx = player.speed;
+    player.facing = "right";
+  } else {
+    player.dx = 0;
+  }
+
+  // Jetpack lift
+  if (keys["ArrowUp"]) {
+    player.dy = player.jumpPower;
+  }
+
+  // Shoot
+  if (keys[" "]) {
+    if (!player.shooting) {
+      shoot();
+      player.shooting = true;
+    }
+  } else {
+    player.shooting = false;
+  }
+
+  // Apply physics
+  player.dy += player.gravity;
+  player.x += player.dx;
+  player.y += player.dy;
+
+  // Floor collision
+  if (player.y + player.height >= canvas.height) {
+    player.y = canvas.height - player.height;
+    player.dy = 0;
+    player.onGround = true;
+  }
+
+  // Boundaries
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.width > canvas.width)
+    player.x = canvas.width - player.width;
+
+  // Update bullets
+  player.bullets.forEach((bullet, i) => {
+    bullet.x += bullet.dx;
+
+    // Remove offscreen bullets
+    if (bullet.x < 0 || bullet.x > canvas.width) {
+      player.bullets.splice(i, 1);
+    }
+
+    // Collision with enemies
+    enemies.forEach((enemy, j) => {
+      if (
+        bullet.x < enemy.x + enemy.width &&
+        bullet.x + bullet.width > enemy.x &&
+        bullet.y < enemy.y + enemy.height &&
+        bullet.y + bullet.height > enemy.y
+      ) {
+        enemies.splice(j, 1);
+        player.bullets.splice(i, 1);
+        score += 10;
+        setTimeout(spawnEnemy, 2000); // respawn enemy after 2s
       }
     });
   });
 
-  // enemy AI
-  enemies.forEach(e=>{
-    if(e.flash>0) e.flash--;
-    if(player.x<e.x) e.x-=e.speed;
-    else if(player.x>e.x) e.x+=e.speed;
+  // Enemy movement & collision with player
+  enemies.forEach(enemy => {
+    enemy.x += enemy.dx;
+
+    // Bounce enemies at edges
+    if (enemy.x < 0 || enemy.x + enemy.width > canvas.width) {
+      enemy.dx *= -1;
+    }
+
+    // Check collision with player
+    if (
+      player.x < enemy.x + enemy.width &&
+      player.x + player.width > enemy.x &&
+      player.y < enemy.y + enemy.height &&
+      player.y + player.height > enemy.y
+    ) {
+      player.health -= 1; // lose health if touched
+      if (player.health <= 0) {
+        alert("Game Over! Final Score: " + score);
+        document.location.reload();
+      }
+    }
   });
 }
 
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+// Draw
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // ground
-  ctx.fillStyle="#444";
-  ctx.fillRect(0,ground+player.h,canvas.width,canvas.height-ground);
+  // Player
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.width, player.height);
 
-  // player
-  let img=player.facing===1?player.right:player.left;
-  if(img.complete && img.naturalWidth!==0){
-    ctx.drawImage(img,player.x,player.y,player.w,player.h);
-  } else {
-    ctx.fillStyle="cyan";
-    ctx.fillRect(player.x,player.y,player.w,player.h);
-  }
-
-  // bullets
-  ctx.fillStyle="yellow";
-  bullets.forEach(b=> ctx.fillRect(b.x,b.y,6,3));
-
-  // enemies
-  enemies.forEach(e=>{
-    ctx.fillStyle=e.flash>0?"white":"red";
-    ctx.fillRect(e.x,e.y,e.w,e.h);
+  // Bullets
+  player.bullets.forEach(bullet => {
+    ctx.fillStyle = bullet.color;
+    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
   });
+
+  // Enemies
+  enemies.forEach(enemy => {
+    ctx.fillStyle = enemy.color;
+    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+  });
+
+  // HUD
+  ctx.fillStyle = "white";
+  ctx.font = "16px Arial";
+  ctx.fillText("Score: " + score, 20, 30);
+  ctx.fillText("Health: " + player.health, 20, 55);
 }
 
-function loop(){ update(); draw(); requestAnimationFrame(loop); }
+// Game loop
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
 loop();
-
-// Keyboard events
-document.addEventListener("keydown",e=>{
-  if(["a","d","w"," "].includes(e.key)) performAction(e.key,true);
-});
-document.addEventListener("keyup",e=>{
-  if(["a","d","w"," "].includes(e.key)) performAction(e.key,false);
-});

@@ -71,15 +71,26 @@
 
   <!-- Gameplay -->
   <section id="gameplay">
-    <h2>Gameplay – Mini Militia Clone</h2>
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
-    <div class="controls">
-      <button onclick="performAction('a')">Left</button>
-      <button onclick="performAction('d')">Right</button>
-      <button onclick="performAction('w')">Jetpack</button>
-      <button onclick="performAction(' ')">Shoot</button>
-    </div>
-  </section>
+  <h2>Gameplay – Mini Militia Clone</h2>
+  <canvas id="gameCanvas" width="800" height="500"></canvas>
+</section>
+
+<script>
+  function showSection(sectionId) {
+    // Hide all sections
+    document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+
+    // Show the one clicked
+    document.getElementById(sectionId).classList.add("active");
+
+    // Reset active button styles
+    document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
+
+    // Highlight current button
+    event.target.classList.add("active");
+  }
+</script>
+
 
   <script src="game.js"></script>
 </body>
