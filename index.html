@@ -1,97 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mini Sui Militia Online – Contract Arena</title>
-  <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>MiniHack Game (Phaser)</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+  <style>
+    body { margin:0; background:#000; }
+    canvas { display:block; margin:auto; }
+  </style>
 </head>
 <body>
-  <nav>
-    <button onclick="showSection('profile')">Profile</button>
-    <button onclick="showSection('avatar')">Avatar</button>
-    <button onclick="showSection('battle')">Battle</button>
-    <button onclick="showSection('reward')">Rewards</button>
-    <button onclick="showSection('gameplay')">Gameplay</button>
-  </nav>
-
-  <!-- Profile -->
-  <section id="profile" class="active">
-    <h2>Profile Register</h2>
-    <form id="loginForm">
-      <input type="email" id="loginEmail" placeholder="Email" required><br>
-      <input type="text" id="loginName" placeholder="Name" required><br>
-      <input type="tel" id="loginPhone" placeholder="Phone" required><br>
-      <button type="submit">Save Profile</button>
-    </form>
-    <p>Form URL: <a id="profileLink" href="#" target="_blank"></a></p>
-    <iframe id="loginSheetIframe"></iframe>
-  </section>
-
-  <!-- Avatar -->
-  <section id="avatar">
-    <h2>Choose Avatar</h2>
-    <form id="avatarForm">
-      <select id="skin">
-        <option>Default</option><option>Camouflage</option><option>Stealth</option>
-      </select><br>
-      <select id="weapon">
-        <option>Pistol</option><option>Rifle</option><option>Sniper</option>
-      </select><br>
-      <button type="submit">Save Avatar</button>
-    </form>
-    <p>Form URL: <a id="avatarLink" href="#" target="_blank"></a></p>
-    <iframe id="avatarSheetIframe"></iframe>
-  </section>
-
-  <!-- Battle -->
-  <section id="battle">
-    <h2>Battle Arena</h2>
-    <form id="battleForm">
-      <select id="map"><option>Forest</option><option>Desert</option><option>City</option></select><br>
-      <select id="mode"><option>Solo</option><option>Team</option></select><br>
-      <button type="submit">Start Battle</button>
-    </form>
-    <p>Form URL: <a id="battleLink" href="#" target="_blank"></a></p>
-    <iframe id="battleSheetIframe"></iframe>
-  </section>
-
-  <!-- Rewards -->
-  <section id="reward">
-    <h2>Rewards</h2>
-    <form id="rewardForm">
-      <input type="text" id="rewardCode" placeholder="Reward Code" required><br>
-      <input type="text" id="rewardPlayer" placeholder="Player Name" required><br>
-      <button type="submit">Claim Reward</button>
-    </form>
-    <p>Form URL: <a id="rewardLink" href="#" target="_blank"></a></p>
-    <iframe id="rewardSheetIframe"></iframe>
-  </section>
-
-  <!-- Gameplay -->
-  <section id="gameplay">
-  <h2>Gameplay – Mini Militia Clone</h2>
-  <canvas id="gameCanvas" width="800" height="500"></canvas>
-</section>
-
 <script>
-  function showSection(sectionId) {
-    // Hide all sections
-    document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+class MenuScene extends Phaser.Scene {
+  constructor() { super("MenuScene"); }
+  create() {
+    this.add.text(300,100,"🚀 MiniHack",{fontSize:"40px",fill:"#fff"});
+    this.add.text(300,200,"Press P to Play",{fontSize:"20px",fill:"#0f0"});
+    this.add.text(300,250,"Press C to Choose Character",{fontSize:"20px",fill:"#0ff"});
+    this.add.text(300,300,"Press T to Choose Terrain",{fontSize:"20px",fill:"#ff0"});
 
-    // Show the one clicked
-    document.getElementById(sectionId).classList.add("active");
-
-    // Reset active button styles
-    document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
-
-    // Highlight current button
-    event.target.classList.add("active");
+    this.input.keyboard.on("keydown-P",()=> this.scene.start("GameScene",{character:"default",terrain:"desert"}));
+    this.input.keyboard.on("keydown-C",()=> this.scene.start("PlayerSelectScene"));
+    this.input.keyboard.on("keydown-T",()=> this.scene.start("TerrainSelectScene"));
   }
+}
+
+class PlayerSelectScene extends Phaser.Scene {
+  constructor(){ super("PlayerSelectScene"); }
+  create() {
+    this.add.text(200,100,"Choose Your Player",{fontSize:"30px",fill:"#fff"});
+    this.add.text(200,200,"1 - Blue",{fill:"#0ff"});
+    this.add.text(200,240,"2 - Red",{fill:"#f00"});
+    this.input.keyboard.on("keydown-ONE",()=>this.scene.start("GameScene",{character:"blue",terrain:"desert"}));
+    this.input.keyboard.on("keydown-TWO",()=>this.scene.start("GameScene",{character:"red",terrain:"desert"}));
+  }
+}
+
+class TerrainSelectScene extends Phaser.Scene {
+  constructor(){ super("TerrainSelectScene"); }
+  create() {
+    this.add.text(200,100,"Choose Terrain",{fontSize:"30px",fill:"#fff"});
+    this.add.text(200,200,"1 - Desert",{fill:"#ff0"});
+    this.add.text(200,240,"2 - Jungle",{fill:"#0f0"});
+    this.input.keyboard.on("keydown-ONE",()=>this.scene.start("GameScene",{character:"default",terrain:"desert"}));
+    this.input.keyboard.on("keydown-TWO",()=>this.scene.start("GameScene",{character:"default",terrain:"jungle"}));
+  }
+}
+
+class GameScene extends Phaser.Scene {
+  constructor(){ super("GameScene"); }
+  init(data){ this.character = data.character; this.terrain = data.terrain; }
+  create() {
+    // Terrain background
+    if(this.terrain==="desert")
+      this.cameras.main.setBackgroundColor("#c2b280");
+    else if(this.terrain==="jungle")
+      this.cameras.main.setBackgroundColor("#228b22");
+
+    // Player
+    this.player = this.add.rectangle(100,300,40,40,this.character==="red"?0xff0000:0x00ffff);
+    this.physics.add.existing(this.player);
+    this.player.body.setCollideWorldBounds(true);
+
+    // Controls
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    // HUD
+    this.health = 100;
+    this.coins = 0;
+    this.hud = this.add.text(10,10,"❤️ 100 | 💰 0",{fontSize:"20px",fill:"#fff"}).setScrollFactor(0);
+  }
+  update() {
+    const speed=200;
+    this.player.body.setVelocity(0);
+    if(this.cursors.left.isDown) this.player.body.setVelocityX(-speed);
+    if(this.cursors.right.isDown) this.player.body.setVelocityX(speed);
+    if(this.cursors.up.isDown) this.player.body.setVelocityY(-speed);
+    if(this.cursors.down.isDown) this.player.body.setVelocityY(speed);
+    if(Phaser.Input.Keyboard.JustDown(this.space)){
+      // Shooting placeholder
+      console.log("Bang!");
+    }
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  width: 800,
+  height: 600,
+  backgroundColor: "#000",
+  physics: { default: "arcade", arcade: { debug: false } },
+  scene: [MenuScene, PlayerSelectScene, TerrainSelectScene, GameScene]
+};
+new Phaser.Game(config);
 </script>
-
-
-  <script src="game.js"></script>
 </body>
 </html>
+
