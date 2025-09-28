@@ -3,157 +3,135 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Web3 Adventure Game</title>
+<title>Web3 Mini-Militia Adventure</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@500&display=swap" rel="stylesheet">
 <style>
-  /* Reset & body */
-  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
-  body, html { height: 100%; width: 100%; background: #101820; color: #fff; overflow: hidden; }
-
-  /* Hero section */
-  .hero {
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
-    height: 100vh; text-align: center; padding: 20px;
-    background: linear-gradient(135deg,#101820,#1c1c2b);
+  body, html {
+    margin:0; padding:0; width:100%; height:100%;
+    background:#101820; overflow:hidden;
+    font-family:'Orbitron', sans-serif;
   }
-  .hero h1 { font-size: 3em; margin-bottom: 20px; color: #00ffcc; text-shadow: 0 0 10px #00ffcc; }
-  .hero p { font-size: 1.3em; margin-bottom: 40px; color: #fff; }
-  .cta-btn {
-    padding: 20px 50px; font-size: 1.5em; color: #101820; background: #00ffcc;
-    border: none; border-radius: 15px; cursor: pointer; box-shadow: 0 0 20px #00ffcc;
-    transition: all 0.3s ease;
+
+  #gameContainer{width:100vw;height:100vh;}
+
+  /* CTA overlay for mini demo */
+  #ctaOverlay {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    pointer-events:none;
+    z-index:5;
   }
-  .cta-btn:hover { transform: scale(1.1); box-shadow: 0 0 40px #00ffcc; }
 
-  /* Features */
-  .features { display: flex; justify-content: space-around; margin-top: 50px; flex-wrap: wrap; }
-  .feature { flex: 1 1 250px; margin: 20px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 15px; }
-  .feature h3 { color: #ffcc00; margin-bottom: 15px; }
-  .feature p { font-size: 1em; color: #fff; }
+  #ctaOverlay h1{
+    color:#00ffcc; font-family:'Press Start 2P', cursive;
+    font-size:2.5em; text-shadow:0 0 10px #00ffcc,0 0 20px #ffcc00;
+    margin-bottom:20px; text-align:center;
+  }
 
-  /* Floating particles background */
-  canvas#backgroundCanvas { position: fixed; top: 0; left: 0; z-index: -1; }
+  #ctaOverlay p{
+    color:#fff; font-size:1.2em; margin-bottom:40px; text-align:center;
+    text-shadow:0 0 5px #000;
+  }
 
-  /* Game iframe container */
-  #gameContainer { display: none; width: 100vw; height: 100vh; }
+  .cta-btn{
+    padding:20px 50px; font-size:1.2em; color:#101820;
+    background:#00ffcc; border:none; border-radius:15px;
+    cursor:pointer; pointer-events:auto;
+    box-shadow:0 0 20px #00ffcc;
+    animation: pulse 2s infinite;
+  }
+
+  .cta-btn:hover{
+    transform:scale(1.1);
+    box-shadow:0 0 40px #ffcc00,0 0 60px #00ffcc;
+  }
+
+  @keyframes pulse{
+    0%,100%{transform:scale(1); box-shadow:0 0 20px #00ffcc;}
+    50%{transform:scale(1.05); box-shadow:0 0 35px #ffcc00;}
+  }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
 </head>
 <body>
-
-<!-- Floating background canvas -->
-<canvas id="backgroundCanvas"></canvas>
-
-<!-- Hero Section -->
-<section class="hero">
-  <h1>Level Up Your Web3 Skills!</h1>
-  <p>Play, Learn, and Earn in a fun, interactive game. No previous blockchain knowledge required.</p>
-  <button class="cta-btn" id="startGameBtn">Enter the Game</button>
-
-  <!-- Features section -->
-  <div class="features">
-    <div class="feature">
-      <h3>🎮 Play & Explore</h3>
-      <p>Navigate challenging levels, shoot enemies, and discover hidden rewards.</p>
-    </div>
-    <div class="feature">
-      <h3>💡 Learn Web3</h3>
-      <p>Pick up blockchain basics and Web3 concepts while having fun in-game.</p>
-    </div>
-    <div class="feature">
-      <h3>🏆 Earn Rewards</h3>
-      <p>Collect coins, health kits, and unlock special badges as you progress.</p>
-    </div>
-  </div>
-</section>
-
-<!-- Game container -->
 <div id="gameContainer"></div>
+<div id="ctaOverlay">
+  <h1>Web3 Mini-Militia Adventure!</h1>
+  <p>Move & Shoot to earn coins! Click below to enter full game.</p>
+  <button class="cta-btn" id="startGameBtn">Enter Full Game</button>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
 <script>
-  const startBtn = document.getElementById('startGameBtn');
-  const heroSection = document.querySelector('.hero');
-  const gameContainer = document.getElementById('gameContainer');
+const startBtn=document.getElementById('startGameBtn');
+const ctaOverlay=document.getElementById('ctaOverlay');
 
-  startBtn.addEventListener('click', () => {
-    heroSection.style.display = 'none';
-    gameContainer.style.display = 'block';
-    initGame(); // Launch Phaser game
-  });
-
-  /* Optional: floating particles in the background */
-  const canvas = document.getElementById('backgroundCanvas');
-  const ctx = canvas.getContext('2d');
-  let width = canvas.width = window.innerWidth;
-  let height = canvas.height = window.innerHeight;
-
-  let particles = [];
-  for (let i = 0; i < 100; i++) {
-    particles.push({ x: Math.random()*width, y: Math.random()*height, r: Math.random()*2+1, dx: Math.random()*0.5-0.25, dy: Math.random()*0.5-0.25 });
-  }
-
-  function animate() {
-    ctx.clearRect(0,0,width,height);
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-      ctx.fillStyle = '#00ffcc';
-      ctx.fill();
-      p.x += p.dx; p.y += p.dy;
-      if(p.x<0||p.x>width) p.dx*=-1;
-      if(p.y<0||p.y>height) p.dy*=-1;
-    });
-    requestAnimationFrame(animate);
-  }
-  animate();
-  window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; });
-
-  /* Phaser game logic */
-  function initGame() {
-    class MainScene extends Phaser.Scene {
-      constructor() { super('MainScene'); }
-      preload() {
-        let g = this.make.graphics({x:0,y:0,add:false});
-        g.fillStyle(0x00ffcc,1).fillCircle(16,16,16); g.generateTexture('player',32,32);
-        g.clear().fillStyle(0xff3333,1).fillCircle(16,16,16); g.generateTexture('enemy',32,32);
-        g.clear().fillStyle(0xffff00,1).fillCircle(4,4,4); g.generateTexture('bullet',8,8);
-        g.clear().fillStyle(0xffa500,1).fillCircle(2,2,2); g.generateTexture('particle',4,4);
-        g.clear().fillStyle(0x00ff00,1).fillRect(0,0,20,20); g.generateTexture('healthkit',20,20);
-        g.clear().fillStyle(0x555555,1).fillRect(0,0,80,20); g.generateTexture('obstacleH',80,20);
-        g.clear().fillStyle(0x555555,1).fillRect(0,0,20,80); g.generateTexture('obstacleV',20,80);
-        g.clear().fillStyle(0x555555,1).fillRect(0,0,50,50); g.generateTexture('obstacleS',50,50);
-      }
-      create() {
-        this.player = this.physics.add.sprite(400,300,'player').setCollideWorldBounds(true);
-        this.bullets = this.physics.add.group(); this.enemies = this.physics.add.group(); this.healthkits = this.physics.add.group();
-        this.particles = this.add.particles('particle');
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.keys = this.input.keyboard.addKeys({W:Phaser.Input.Keyboard.KeyCodes.W,A:Phaser.Input.Keyboard.KeyCodes.A,S:Phaser.Input.Keyboard.KeyCodes.S,D:Phaser.Input.Keyboard.KeyCodes.D,SPACE:Phaser.Input.Keyboard.KeyCodes.SPACE});
-        this.coins=0; this.health=100;
-        this.coinText=this.add.text(16,16,'💰 Coins: 0',{fontSize:'20px',fill:'#ff0'}); 
-        this.healthText=this.add.text(16,40,'❤️ Health: 100',{fontSize:'20px',fill:'#ff4444'});
-        this.obstacles=this.physics.add.staticGroup();
-        for(let i=0;i<8;i++){const x=Phaser.Math.Between(50,750); const y=Phaser.Math.Between(50,550); const type=Phaser.Math.RND.pick(['obstacleH','obstacleV','obstacleS']); this.obstacles.create(x,y,type);}
-        this.physics.add.collider(this.player,this.obstacles);
-        this.physics.add.collider(this.enemies,this.obstacles);
-        this.time.addEvent({delay:2000,callback:()=>this.spawnEnemy(),loop:true});
-        this.time.addEvent({delay:10000,callback:()=>this.spawnHealthkit(),loop:true});
-        this.physics.add.overlap(this.bullets,this.enemies,(b,e)=>{b.destroy();e.destroy(); this.particles.createEmitter({speed:{min:-200,max:200},lifespan:400,quantity:15,scale:{start:0.6,end:0}}).explode(15,e.x,e.y); this.coins+=10; this.coinText.setText('💰 Coins: '+this.coins);});
-        this.physics.add.overlap(this.player,this.enemies,(p,e)=>{e.destroy(); this.takeDamage(10);});
-        this.physics.add.overlap(this.player,this.healthkits,(p,k)=>{k.destroy(); this.health=Math.min(this.health+20,100); this.healthText.setText('❤️ Health: '+this.health);});
-        this.input.on('pointerdown',pointer=>this.shootBullet(pointer));
-      }
-      spawnEnemy(){const x=Phaser.Math.Between(50,750); const y=Phaser.Math.Between(50,550); const enemy=this.enemies.create(x,y,'enemy'); enemy.setCircle(16);}
-      spawnHealthkit(){const x=Phaser.Math.Between(50,750); const y=Phaser.Math.Between(50,550); this.healthkits.create(x,y,'healthkit');}
-      shootBullet(pointer){const tx=pointer?pointer.worldX:this.player.x; const ty=pointer?pointer.worldY:this.player.y-100; const b=this.bullets.create(this.player.x,this.player.y,'bullet'); this.physics.moveTo(b,tx,ty,400); b.setCollideWorldBounds(true); b.setBounce(1); b.bounceCount=0; b.body.onWorldBounds=true; b.body.world.on('worldbounds',bb=>{if(bb.gameObject===b){b.bounceCount++; if(b.bounceCount>2)b.destroy();}});}
-      takeDamage(a){this.health-=a; if(this.health<0)this.health=0; this.healthText.setText('❤️ Health: '+this.health); if(this.health<=0)this.gameOver();}
-      gameOver(){this.player.destroy(); this.enemies.clear(true,true); this.add.text(400,300,'💀 GAME OVER 💀',{fontSize:'50px',fill:'#ff0000',fontFamily:'Arial Black'}).setOrigin(0.5);}
-      update(){if(!this.player)return; this.player.setVelocity(0); if(this.cursors.left.isDown||this.keys.A.isDown)this.player.setVelocityX(-200); if(this.cursors.right.isDown||this.keys.D.isDown)this.player.setVelocityX(200); if(this.cursors.up.isDown||this.keys.W.isDown)this.player.setVelocityY(-200); if(this.cursors.down.isDown||this.keys.S.isDown)this.player.setVelocityY(200); if(Phaser.Input.Keyboard.JustDown(this.keys.SPACE))this.shootBullet(); this.enemies.children.iterate(e=>{if(e)this.physics.moveToObject(e,this.player,100);});}
+function initGame() {
+  class MainScene extends Phaser.Scene {
+    constructor(){super('MainScene');}
+    preload(){
+      let g=this.make.graphics({x:0,y:0,add:false});
+      // Player
+      g.fillStyle(0x00ffcc,1).fillCircle(16,16,16); g.generateTexture('player',32,32);
+      // Enemy
+      g.clear().fillStyle(0xff3333,1).fillCircle(16,16,16); g.generateTexture('enemy',32,32);
+      // Bullet
+      g.clear().fillStyle(0xffff00,1).fillCircle(4,4,4); g.generateTexture('bullet',8,8);
+      // Particle
+      g.clear().fillStyle(0xffa500,1).fillCircle(2,2,2); g.generateTexture('particle',4,4);
+      // Healthkit
+      g.clear().fillStyle(0x00ff00,1).fillRect(0,0,20,20); g.generateTexture('healthkit',20,20);
+      // Obstacles
+      g.clear().fillStyle(0x555555,1).fillRect(0,0,80,20); g.generateTexture('obstacleH',80,20);
+      g.clear().fillStyle(0x555555,1).fillRect(0,0,20,80); g.generateTexture('obstacleV',20,80);
+      g.clear().fillStyle(0x555555,1).fillRect(0,0,50,50); g.generateTexture('obstacleS',50,50);
     }
-
-    const config = {type: Phaser.AUTO,width:800,height:600,backgroundColor:'#101820',physics:{default:'arcade',arcade:{debug:false}},scene:MainScene,parent:'gameContainer'};
-    new Phaser.Game(config);
+    create(){
+      // Player
+      this.player=this.physics.add.sprite(400,500,'player').setCollideWorldBounds(true);
+      // Groups
+      this.bullets=this.physics.add.group();
+      this.enemies=this.physics.add.group();
+      this.healthkits=this.physics.add.group();
+      this.particles=this.add.particles('particle');
+      // Controls
+      this.cursors=this.input.keyboard.createCursorKeys();
+      this.keys=this.input.keyboard.addKeys({W:Phaser.Input.Keyboard.KeyCodes.W,A:Phaser.Input.Keyboard.KeyCodes.A,S:Phaser.Input.Keyboard.KeyCodes.S,D:Phaser.Input.Keyboard.KeyCodes.D,SPACE:Phaser.Input.Keyboard.KeyCodes.SPACE});
+      // HUD
+      this.coins=0; this.health=100;
+      this.coinText=this.add.text(16,16,'💰 Coins: 0',{fontSize:'20px',fill:'#ff0'});
+      this.healthText=this.add.text(16,40,'❤️ Health: 100',{fontSize:'20px',fill:'#ff4444'});
+      // Obstacles
+      this.obstacles=this.physics.add.staticGroup();
+      for(let i=0;i<5;i++){const x=Phaser.Math.Between(50,750); const y=Phaser.Math.Between(50,400); const type=Phaser.Math.RND.pick(['obstacleH','obstacleV','obstacleS']); this.obstacles.create(x,y,type);}
+      this.physics.add.collider(this.player,this.obstacles);
+      this.physics.add.collider(this.enemies,this.obstacles);
+      // Enemy spawn
+      this.time.addEvent({delay:1500,callback:()=>this.spawnEnemy(),loop:true});
+      // Healthkit spawn
+      this.time.addEvent({delay:10000,callback:()=>this.spawnHealthkit(),loop:true});
+      // Collisions
+      this.physics.add.overlap(this.bullets,this.enemies,(b,e)=>{b.destroy();e.destroy();this.spawnCoin(e.x,e.y); this.coins+=10; this.coinText.setText('💰 Coins: '+this.coins);});
+      this.physics.add.overlap(this.player,this.enemies,(p,e)=>{e.destroy();this.takeDamage(10);});
+      this.physics.add.overlap(this.player,this.healthkits,(p,k)=>{k.destroy();this.health=Math.min(this.health+20,100); this.healthText.setText('❤️ Health: '+this.health);});
+      this.input.on('pointerdown',pointer=>this.shootBullet(pointer));
+    }
+    spawnEnemy(){const x=Phaser.Math.Between(50,750); const y=Phaser.Math.Between(50,400); const e=this.enemies.create(x,y,'enemy'); e.setCircle(16);}
+    spawnHealthkit(){const x=Phaser.Math.Between(50,750); const y=Phaser.Math.Between(50,400); this.healthkits.create(x,y,'healthkit');}
+    shootBullet(pointer){const tx=pointer?pointer.worldX:this.player.x; const ty=pointer?pointer.worldY:this.player.y-100; const b=this.bullets.create(this.player.x,this.player.y,'bullet'); this.physics.moveTo(b,tx,ty,400);}
+    spawnCoin(x,y){const coin=this.add.sprite(x,y,'bullet'); this.tweens.add({targets:coin,scale:0,alpha:0,duration:500,onComplete:()=>coin.destroy()});}
+    takeDamage(a){this.health-=a;if(this.health<0)this.health=0;this.healthText.setText('❤️ Health: '+this.health); if(this.health<=0)this.gameOver();}
+    gameOver(){this.player.destroy();this.enemies.clear(true,true); this.add.text(400,300,'💀 GAME OVER 💀',{fontSize:'50px',fill:'#ff0000',fontFamily:'Press Start 2P'}).setOrigin(0.5);}
+    update(){if(!this.player)return;this.player.setVelocity(0);if(this.cursors.left.isDown||this.keys.A.isDown)this.player.setVelocityX(-200);if(this.cursors.right.isDown||this.keys.D.isDown)this.player.setVelocityX(200);if(this.cursors.up.isDown||this.keys.W.isDown)this.player.setVelocityY(-200);if(this.cursors.down.isDown||this.keys.S.isDown)this.player.setVelocityY(200);if(Phaser.Input.Keyboard.JustDown(this.keys.SPACE))this.shootBullet(); this.enemies.children.iterate(e=>{if(e)this.physics.moveToObject(e,this.player,100);});}
   }
-</script>
 
+  const config={type:Phaser.AUTO,width:800,height:600,backgroundColor:'#101820',physics:{default:'arcade',arcade:{debug:false}},scene:MainScene,parent:'gameContainer'};
+  new Phaser.Game(config);
+}
+
+startBtn.addEventListener('click',()=>{
+  ctaOverlay.style.display='none';
+  initGame();
+});
+</script>
 </body>
 </html>
