@@ -2,159 +2,85 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sui Militia</title>
-
-  <!-- External Libraries -->
-  <script src="https://unpkg.com/phaser@3.55.2/dist/phaser.min.js"></script>
-  <script src="https://unpkg.com/@mysten/sui.js@latest"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini Sui Militia Online – Contract Arena</title>
+  <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-
-  <style>
-    body {
-      background: radial-gradient(circle at top, #0a1c2a, #000);
-      overflow-x: hidden;
-      font-family: 'Press Start 2P', cursive;
-    }
-
-    /* Starry background */
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: url('assets/background.jpg') repeat;
-      animation: moveStars 60s linear infinite;
-      z-index: -1;
-    }
-    @keyframes moveStars {
-      from { background-position: 0 0; }
-      to { background-position: -10000px 5000px; }
-    }
-
-    /* Pixel border with glow */
-    .pixel-border {
-      border-image: url('assets/pixel-border.png') 8 stretch;
-      border-width: 4px;
-      border-style: solid;
-      box-shadow: 0 0 15px #ff6a00;
-    }
-
-    /* Neon flicker for title */
-    @keyframes neon-flicker {
-      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-        text-shadow: 0 0 5px #ff4500, 0 0 15px #00ff7f, 0 0 25px #ff4500;
-      }
-      20%, 24%, 55% {
-        text-shadow: none;
-      }
-    }
-    .neon-title {
-      animation: neon-flicker 3s infinite;
-    }
-
-    /* Buttons */
-    .btn-glow {
-      background: linear-gradient(45deg, #ff4500, #ffd700);
-      color: #fff;
-      transition: transform 0.2s ease;
-      box-shadow: 0 0 10px #ff4500;
-    }
-    .btn-glow:hover {
-      transform: translateY(-4px) scale(1.05);
-      box-shadow: 0 0 20px #ffd700, 0 0 40px #ff4500;
-    }
-    .btn-glow:active {
-      transform: scale(0.95);
-    }
-
-    /* Floating effect for icons */
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
-    }
-    .float {
-      animation: float 2.5s ease-in-out infinite;
-    }
-
-    /* Smooth fade-in */
-    .fade-in { animation: fadeIn 1.5s ease forwards; opacity: 0; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-  </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center px-4">
+<body>
+  <nav>
+    <button onclick="showSection('profile')">Profile</button>
+    <button onclick="showSection('avatar')">Avatar</button>
+    <button onclick="showSection('battle')">Battle</button>
+    <button onclick="showSection('reward')">Rewards</button>
+    <button onclick="showSection('gameplay')">Gameplay</button>
+  </nav>
 
-  <div class="w-full max-w-5xl p-8 bg-gray-900/80 rounded-lg pixel-border fade-in">
-    <!-- Title -->
-    <h1 class="text-5xl md:text-6xl text-center mb-10 text-orange-400 neon-title drop-shadow-lg">
-      ⚔️ Sui Militia ⚔️
-    </h1>
+  <!-- Profile -->
+  <section id="profile" class="active">
+    <h2>Profile Register</h2>
+    <form id="loginForm">
+      <input type="email" id="loginEmail" placeholder="Email" required><br>
+      <input type="text" id="loginName" placeholder="Name" required><br>
+      <input type="tel" id="loginPhone" placeholder="Phone" required><br>
+      <button type="submit">Save Profile</button>
+    </form>
+    <p>Form URL: <a id="profileLink" href="#" target="_blank"></a></p>
+    <iframe id="loginSheetIframe"></iframe>
+  </section>
 
-    <!-- HUD -->
-    <div class="flex flex-col md:flex-row justify-between mb-8 gap-6">
-      <div class="flex items-center bg-gray-800/90 p-4 rounded pixel-border">
-        <img src="assets/soldier.png" class="w-16 h-16 mr-4 float" alt="Soldier">
-        <p id="playerStatus" class="text-lg text-white font-bold">Click Join Island!</p>
-      </div>
-      <div class="bg-gray-800/90 p-4 rounded pixel-border text-right">
-        <p class="text-white text-lg">Coins: <span id="coins" class="text-yellow-400">0</span> <img src="assets/coin.png" class="w-7 h-7 inline float" alt="Coin"></p>
-        <p class="text-white text-lg">Weapon: <span id="weapon" class="text-orange-400">Basic Gun</span></p>
-        <div class="w-48 bg-gray-700 rounded h-4 mt-2 overflow-hidden">
-          <div id="health" class="health-bar h-4 rounded bg-gradient-to-r from-orange-500 to-green-400" style="width: 100%;"></div>
-        </div>
-      </div>
+  <!-- Avatar -->
+  <section id="avatar">
+    <h2>Choose Avatar</h2>
+    <form id="avatarForm">
+      <select id="skin">
+        <option>Default</option><option>Camouflage</option><option>Stealth</option>
+      </select><br>
+      <select id="weapon">
+        <option>Pistol</option><option>Rifle</option><option>Sniper</option>
+      </select><br>
+      <button type="submit">Save Avatar</button>
+    </form>
+    <p>Form URL: <a id="avatarLink" href="#" target="_blank"></a></p>
+    <iframe id="avatarSheetIframe"></iframe>
+  </section>
+
+  <!-- Battle -->
+  <section id="battle">
+    <h2>Battle Arena</h2>
+    <form id="battleForm">
+      <select id="map"><option>Forest</option><option>Desert</option><option>City</option></select><br>
+      <select id="mode"><option>Solo</option><option>Team</option></select><br>
+      <button type="submit">Start Battle</button>
+    </form>
+    <p>Form URL: <a id="battleLink" href="#" target="_blank"></a></p>
+    <iframe id="battleSheetIframe"></iframe>
+  </section>
+
+  <!-- Rewards -->
+  <section id="reward">
+    <h2>Rewards</h2>
+    <form id="rewardForm">
+      <input type="text" id="rewardCode" placeholder="Reward Code" required><br>
+      <input type="text" id="rewardPlayer" placeholder="Player Name" required><br>
+      <button type="submit">Claim Reward</button>
+    </form>
+    <p>Form URL: <a id="rewardLink" href="#" target="_blank"></a></p>
+    <iframe id="rewardSheetIframe"></iframe>
+  </section>
+
+  <!-- Gameplay -->
+  <section id="gameplay">
+    <h2>Gameplay – Mini Militia Clone</h2>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <div class="controls">
+      <button onclick="performAction('a')">Left</button>
+      <button onclick="performAction('d')">Right</button>
+      <button onclick="performAction('w')">Jetpack</button>
+      <button onclick="performAction(' ')">Shoot</button>
     </div>
+  </section>
 
-    <!-- Canvas -->
-<canvas id="worldCanvas" width="800" height="600" class="mx-auto border-4 pixel-border shadow-xl"></canvas>
-
-    <!-- Quest + Leaderboard -->
-    <div class="flex flex-col md:flex-row mt-8 gap-6">
-      <!-- Quest -->
-      <div class="bg-gray-800/90 p-6 rounded pixel-border w-full md:w-1/2">
-        <img src="assets/soldier.png" class="w-12 h-12 mx-auto mb-3 float" alt="Quest Scroll">
-        <h2 class="text-xl text-center text-orange-400 mb-2">Quest: Find the Hidden Coin</h2>
-        <p class="text-center text-white">Explore Coin Beach!</p>
-        <button id="joinIsland" class="py-3 px-8 rounded mt-6 mx-auto block btn-glow text-lg">
-          Join Island!
-        </button>
-        <button id="collectCoin" class="py-3 px-8 rounded mt-4 mx-auto block btn-glow text-lg hidden" disabled>
-          Collect Coin!
-        </button>
-        <button id="claimWeapon" class="py-3 px-8 rounded mt-4 mx-auto block btn-glow text-lg hidden">
-          <img src="assets/gun.png" class="w-7 h-7 inline mr-2 float" alt="Fire Gun"> Claim Fire Gun!
-        </button>
-        <p id="questStatus" class="text-center text-white mt-4 text-lg"></p>
-      </div>
-
-      <!-- Leaderboard -->
-      <div class="bg-gray-800/90 p-6 rounded pixel-border w-full md:w-1/2">
-        <h2 class="text-xl text-center text-orange-400 flex items-center justify-center mb-4">
-          <img src="assets/trophy.png" class="w-12 h-12 mr-3 float" alt="Trophy"> Top Soldiers
-        </h2>
-        <ul id="leaderboard" class="text-base text-center text-white space-y-2">
-          <li class="text-yellow-400">0x123...: 50 Coins 🥇</li>
-          <li class="text-gray-200">0x456...: 30 Coins 🥈</li>
-          <li class="text-gray-400">0x789...: 20 Coins 🥉</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <p class="text-center text-white mt-10 text-sm tracking-wider">
-      Built on <span class="text-orange-400">Sui</span> for Web3 Gaming ⚡
-    </p>
-  </div>
-
-  <script>
-    // Button click sound
-    document.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', () => new Audio('assets/click.wav').play());
-    });
-  </script>
   <script src="game.js"></script>
 </body>
 </html>
